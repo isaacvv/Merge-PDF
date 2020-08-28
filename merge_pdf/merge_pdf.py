@@ -9,8 +9,41 @@ import uuid
 from PIL import Image
 import img2pdf
 import io
+from tkinter import *
+import tkinter
+
 
 image_extns = ['jpg', 'jpeg', 'tiff', 'png', 'gif']
+
+
+def checkEncryption(pdf_reader, f_name):
+    password = ""
+    root = Tk()
+    root.title('Password')
+
+    def retrieve_input(password_var):
+        password = str(password_var.get())
+        print(f'DEBUG : Password is {password}')
+
+    if pdf_reader.isEncrypted == True:
+        label = Label(root,
+                      text=f"Password for : {f_name}", height=2)
+        label.pack()
+        # textBox = Text(root, height=2, width=20)
+        # textBox.pack()
+        password_var = StringVar()
+        password_entry = tkinter.Entry(
+            root, show='*', textvariable=password_var)
+        password_entry.pack()
+        buttonCommit = Button(root, height=1, width=10, text="Proceed",
+                              command=lambda: [retrieve_input(password_var), root.destroy()])
+        buttonCommit.pack()
+
+        mainloop()
+
+        print("DEBUG : Fetched Password.")
+
+    return pdf_reader
 
 
 def pdf_global(pdfs, args, pdf_writer):
@@ -22,7 +55,8 @@ def pdf_global(pdfs, args, pdf_writer):
             break
 
         if args.start_string == None and args.end_string == None and args.contains == None:
-            pdf_reader = PdfFileReader(pdf)
+            pdf_reader = PdfFileReader(open(pdf, 'rb'))
+            pdf_reader = checkEncryption(pdf_reader, pdf)
             pdf_writer = read_pdf(pdf_reader, pdf_writer)
 
             cnt += 1
@@ -35,7 +69,7 @@ def pdf_global(pdfs, args, pdf_writer):
                 #print('DEBUG: Entered StartsWith Portion')
 
                 if re.search(r'^'+re.escape((args.start_string))+r'[\w+\s+\d+]+', pdf[:-4], re.IGNORECASE):
-                    pdf_reader = PdfFileReader(pdf)
+                    pdf_reader = PdfFileReader(open(pdf, 'rb'))
                     pdf_writer = read_pdf(pdf_reader, pdf_writer)
 
                     cnt += 1
@@ -44,7 +78,7 @@ def pdf_global(pdfs, args, pdf_writer):
                 #print('DEBUG: Entered EndsWith Portion')
 
                 if re.search(r'[\d+\w+\s+]'+re.escape(str(args.end_string))+r'$', pdf[:-4], re.IGNORECASE):
-                    pdf_reader = PdfFileReader(pdf)
+                    pdf_reader = PdfFileReader(open(pdf, 'rb'))
                     pdf_writer = read_pdf(pdf_reader, pdf_writer)
                     cnt += 1
 
@@ -52,7 +86,9 @@ def pdf_global(pdfs, args, pdf_writer):
                 #print('DEBUG: Entered Contains Portion')
 
                 if re.search(re.escape(str(args.contains)), pdf[:-4], re.IGNORECASE):
-                    pdf_reader = PdfFileReader(pdf)
+                    pdf_reader = PdfFileReader(open(pdf, 'rb'))
+                    pdf_reader = checkEncryption(pdf_reader, pdf)
+
                     pdf_writer = read_pdf(pdf_reader, pdf_writer)
                     cnt += 1
 
