@@ -9,6 +9,8 @@ import uuid
 from PIL import Image
 import img2pdf
 import io
+import fitz
+from io import BytesIO
 
 image_extns = ['jpg', 'jpeg', 'tiff', 'png', 'gif']
 
@@ -22,7 +24,45 @@ def pdf_global(pdfs, args, pdf_writer):
             break
 
         if args.start_string == None and args.end_string == None and args.contains == None:
-            pdf_reader = PdfFileReader(pdf)
+
+           
+
+            idata = open(pdf, "rb").read()  # read the PDF into memory and
+            ibuffer = BytesIO(idata)  # convert to stream
+            
+            doc = fitz.open("pdf", ibuffer)
+
+            # if password is not None:  # decrypt if password provided
+            #     rc = doc.authenticate(password)
+            #     if not rc > 0:
+            #         raise ValueError("wrong password")
+
+            if doc.isEncrypted:
+                if args.password:
+                    rc = doc.authenticate(args.password)
+                    if not rc > 0:
+                        raise ValueError("wrong password")
+                else:
+                    password = input(f"{pdf} is encrypted. Please enter password: ")
+                    rc = doc.authenticate(password)
+                    if not rc > 0:
+                        raise ValueError("wrong password")
+
+
+            c = doc.write(garbage=3, deflate=True)
+            del doc  # close & delete doc
+            pdf_reader = PdfFileReader(BytesIO(c))
+
+            # doc = fitz.open(pdf)
+            # if doc.isEncrypted:
+            #     print("is encrypted")
+            #     doc.authenticate("test123")
+            #     doc1 = fitz.open()
+            #     doc1.insertPDF(doc)
+            #     doc1.save("test123.pdf")
+
+
+            #pdf_reader = PdfFileReader(pdf)
             pdf_writer = read_pdf(pdf_reader, pdf_writer)
 
             cnt += 1
@@ -138,6 +178,7 @@ def main():
                         help='Merge Both PDFs and Images. Default is Only PDF')  # default Only PDF
     parser.add_argument('-f', '--filename', action='store', dest='filename_string', default=str(uuid.uuid4()
                                                                                                 ).split('-')[0]+'.pdf', help='Filename of the merged PDF. Default is randomly generated names.')
+    parser.add_argument('-p', '--password', action='store',dest='password', help='Password used to decrypt PDFs')                                                                                                
 
     args = parser.parse_args()
     print(args)
